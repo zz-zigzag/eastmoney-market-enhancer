@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         牛熊风向标 - 成交额图叠加全A分时
 // @namespace    https://emrnweb.eastmoney.com/
-// @version      3.0.0
-// @description  在东方财富“牛熊风向标”的成交额图中叠加全A指数或A股平均股价分时线。
+// @version      3.1.0
+// @description  在东方财富“牛熊风向标”的成交额图中叠加全A等权指数或A股平均股价分时线。
 // @match        https://emrnweb.eastmoney.com/nxfxb/home*
 // @grant        GM_xmlhttpRequest
 // @connect      push2.eastmoney.com
@@ -19,16 +19,17 @@
   const ACTIVE_REFRESH_MS = 15_000;
   const IDLE_REFRESH_MS = 300_000;
   const MOUNT_RETRY_MS = 500;
+  const MOUNT_HEALTH_MS = 5_000;
   const API_HOSTS = [
-    'push2.eastmoney.com',
     'push2his.eastmoney.com',
+    'push2.eastmoney.com',
     'push2delay.eastmoney.com',
   ];
   const INDEXES = {
     allA: {
-      label: '全A指数',
-      shortLabel: '全A',
-      secid: '47.800000',
+      label: '全A等权指数',
+      shortLabel: '全A等权',
+      secid: '47.800004',
       color: '#7657e8',
       lineAlpha: 'rgba(118,87,232,.55)',
       fillTop: 'rgba(118,87,232,.13)',
@@ -55,6 +56,7 @@
   let pointerContainer = null;
   let hoverSlot = null;
   let mountTimer = null;
+  let mountCheckTimer = null;
   let refreshTimer = null;
 
   function requestJson(url) {
@@ -93,7 +95,10 @@
       secid,
       fields1: 'f1,f2,f5,f8',
       fields2: 'f51,f53',
+      ut: 'fa5fd1943c7b386f172d6893dbfba10b',
       iscr: '0',
+      iscca: '0',
+      time: '0',
       ndays: '1',
     });
     return `https://${hostname}/api/qt/stock/trends2/get?${params}`;
@@ -160,23 +165,29 @@
   function findTargetCanvas() {
     const anchor = findTextElement('今日两市成交') || findTextElement('今日三市成交');
     if (!anchor) return null;
+    const anchorRect = anchor.getBoundingClientRect();
+    const anchorCenterX = anchorRect.left + anchorRect.width / 2;
 
-    for (let element = anchor; element && element.parentElement; element = element.parentElement) {
-      const canvases = [...element.querySelectorAll('canvas')]
-        .filter((canvas) => {
-          if (canvas.id === OVERLAY_ID) return false;
-          const rect = canvas.getBoundingClientRect();
-          return rect.width > 280 && rect.height > 180;
-        })
-        .sort((a, b) => {
-          const ar = a.getBoundingClientRect();
-          const br = b.getBoundingClientRect();
-          return br.width * br.height - ar.width * ar.height;
-        });
-      if (canvases.length) return canvases[0];
-      if (element.id === 'root') break;
-    }
-    return null;
+    const candidates = [...document.querySelectorAll('canvas')]
+      .filter((canvas) => canvas.id !== OVERLAY_ID)
+      .map((canvas) => ({ canvas, rect: canvas.getBoundingClientRect() }))
+      .filter(({ rect }) => {
+        const verticalGap = rect.top - anchorRect.bottom;
+        const horizontallyAligned = anchorCenterX >= rect.left - 24
+          && anchorCenterX <= rect.right + 24;
+        return rect.width > 280
+          && rect.height > 180
+          && verticalGap >= -20
+          && verticalGap <= 500
+          && horizontallyAligned;
+      })
+      .sort((a, b) => {
+        const aGap = Math.abs(a.rect.top - anchorRect.bottom);
+        const bGap = Math.abs(b.rect.top - anchorRect.bottom);
+        return aGap - bGap;
+      });
+
+    return candidates[0]?.canvas || null;
   }
 
   function prepareCanvas() {
@@ -484,9 +495,11 @@
       return;
     }
     const observer = new MutationObserver(() => {
-      if (!overlayCanvas?.isConnected || !targetCanvas?.isConnected || !switchPanel?.isConnected) {
+      clearTimeout(mountCheckTimer);
+      mountCheckTimer = setTimeout(() => {
+        mountCheckTimer = null;
         attachOverlay();
-      }
+      }, 100);
     });
     observer.observe(document.documentElement, { childList: true, subtree: true });
     if (!attachOverlay()) {
@@ -497,6 +510,7 @@
         }
       }, MOUNT_RETRY_MS);
     }
+    setInterval(attachOverlay, MOUNT_HEALTH_MS);
   }
 
   document.addEventListener('visibilitychange', () => {
