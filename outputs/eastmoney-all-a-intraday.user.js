@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         牛熊风向标 - 成交额图叠加全A分时
 // @namespace    https://emrnweb.eastmoney.com/
-// @version      3.1.0
-// @description  在东方财富“牛熊风向标”的成交额图中叠加全A等权指数或A股平均股价分时线。
+// @version      3.1.2
+// @description  在东方财富“牛熊风向标”的成交额图中叠加东方财富全A（沪深京）或A股平均股价分时线。
 // @match        https://emrnweb.eastmoney.com/nxfxb/home*
 // @grant        GM_xmlhttpRequest
 // @connect      push2.eastmoney.com
@@ -16,8 +16,9 @@
 
   const OVERLAY_ID = 'ema-market-index-overlay';
   const SWITCH_ID = 'ema-market-index-switch';
-  const ACTIVE_REFRESH_MS = 15_000;
-  const IDLE_REFRESH_MS = 300_000;
+  const RETRY_REFRESH_MS = 15_000;
+  const ACTIVE_REFRESH_MS = 30_000;
+  const IDLE_REFRESH_MS = 600_000;
   const MOUNT_RETRY_MS = 500;
   const MOUNT_HEALTH_MS = 5_000;
   const API_HOSTS = [
@@ -27,8 +28,8 @@
   ];
   const INDEXES = {
     allA: {
-      label: '全A等权指数',
-      shortLabel: '全A等权',
+      label: '全A',
+      shortLabel: '全A',
       secid: '47.800004',
       color: '#7657e8',
       lineAlpha: 'rgba(118,87,232,.55)',
@@ -478,7 +479,8 @@
   }
 
   function nextRefreshDelay() {
-    return !activeData() || isTradingWindow() ? ACTIVE_REFRESH_MS : IDLE_REFRESH_MS;
+    if (!activeData()) return RETRY_REFRESH_MS;
+    return isTradingWindow() ? ACTIVE_REFRESH_MS : IDLE_REFRESH_MS;
   }
 
   function scheduleRefresh(delay = nextRefreshDelay()) {

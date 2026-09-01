@@ -67,7 +67,7 @@
     const allAPreClose = 6546.12;
     const averagePreClose = 28.20;
     window.__EMA_MARKET_INDEX_MOCKS__ = {
-      '47.800004': { data:{ name:'全A等权指数', preClose:allAPreClose, trends:buildRows(allAPreClose,(index,preClose)=>preClose+Math.sin(index/19)*18+index*.13-Math.max(0,index-165)*.17) } },
+      '47.800004': { data:{ name:'全A', preClose:allAPreClose, trends:buildRows(allAPreClose,(index,preClose)=>preClose+Math.sin(index/19)*18+index*.13-Math.max(0,index-165)*.17) } },
       '47.800005': { data:{ name:'A股平均股价', preClose:averagePreClose, trends:buildRows(averagePreClose,(index,preClose)=>preClose+Math.cos(index/25)*.15-index*.0018+Math.max(0,index-145)*.0008) } },
     };
 
