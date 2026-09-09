@@ -25,6 +25,8 @@
     .blue { background:#428df2; } .orange { background:#f5a12a; } .pink { background:#f45bac; }
     .bars { width:12px; height:8px; background:linear-gradient(90deg,#ef3742 0 48%,transparent 48% 56%,#2fa86d 56%); }
     .chart-frame { position:relative; width:100%; height:300px; }
+    .chart-row { display:flex; width:100%; }
+    .chart-slot { width:100%; height:300px; }
     #target-chart { display:block; width:100%; height:300px; }
     .hourly { margin-top:12px; padding:14px 8px; border-radius:12px; background:#f7f8fa; }
     .row { display:grid; grid-template-columns:1.25fr repeat(4,1fr); gap:5px; text-align:center; font-size:12px; }
@@ -46,7 +48,7 @@
       <span class="legend-item"><i class="line pink"></i><span>预测两市成交</span></span>
       <span class="legend-item"><i class="bars"></i><span>较前一日增减</span></span>
     </div>
-    <div class="chart-frame"><canvas id="target-chart"></canvas></div>
+    <div class="chart-slot"><div class="chart-row"><div class="chart-frame" _echarts_instance_="test-chart"><canvas id="target-chart"></canvas></div></div></div>
     <div class="hourly">
       <div class="row"><span>每小时统计</span><span>截止10:30</span><span>截止11:30</span><span>截止14:00</span><span>截止15:00</span></div>
       <div class="row"><span>今日</span><span>1.01万亿</span><span>1.37万亿</span><span>1.66万亿</span><span>--</span></div>

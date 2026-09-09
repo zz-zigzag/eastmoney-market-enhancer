@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         牛熊风向标 - 成交额图叠加全A分时
 // @namespace    https://emrnweb.eastmoney.com/
-// @version      3.1.2
+// @version      3.1.4
 // @description  在东方财富“牛熊风向标”的成交额图中叠加东方财富全A（沪深京）或A股平均股价分时线。
 // @match        https://emrnweb.eastmoney.com/nxfxb/home*
 // @grant        GM_xmlhttpRequest
@@ -37,7 +37,7 @@
     },
     average: {
       label: '平均股价',
-      shortLabel: '平均股价',
+      shortLabel: '平均',
       secid: '47.800005',
       color: '#078f89',
       lineAlpha: 'rgba(7,143,137,.55)',
@@ -372,20 +372,18 @@
     switchPanel = document.createElement('div');
     switchPanel.id = SWITCH_ID;
     switchPanel.style.cssText = [
-      'position:absolute',
-      'top:4px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'z-index:21',
       'display:flex',
+      'flex-direction:row',
+      'flex-wrap:wrap',
+      'justify-content:flex-start',
       'align-items:center',
+      'align-content:flex-start',
+      'flex:0 0 auto',
       'gap:2px',
-      'height:28px',
-      'padding:2px',
-      'border:1px solid rgba(118,87,232,.22)',
-      'border-radius:7px',
-      'background:rgba(255,255,255,.94)',
-      'box-shadow:0 2px 8px rgba(31,42,63,.08)',
+      'margin:0 4% 4px',
+      'padding:0',
+      'border:0',
+      'background:transparent',
       'font-family:system-ui,-apple-system,"PingFang SC",sans-serif',
       'white-space:nowrap',
       'pointer-events:auto',
@@ -408,7 +406,16 @@
     quoteElement.style.cssText = 'padding:0 5px 0 4px;font-size:10px;font-weight:600;line-height:22px;';
     quoteElement.textContent = statusByKey[activeKey]?.text || '加载中…';
     switchPanel.appendChild(quoteElement);
-    container.appendChild(switchPanel);
+    // 找到完整的图表区域，在它前面插入工具栏。
+    let chartRoot = targetCanvas.closest('[_echarts_instance_]') || container;
+    const chartRect = chartRoot.getBoundingClientRect();
+    // 跳过同尺寸的横向 flex 和固定高度容器，避免挤窄图表或占用柱状图高度。
+    while (chartRoot.parentElement && chartRoot.parentElement !== document.body) {
+      const parentRect = chartRoot.parentElement.getBoundingClientRect();
+      if (!['x', 'y', 'width', 'height'].every(key => Math.abs(parentRect[key] - chartRect[key]) < 1)) break;
+      chartRoot = chartRoot.parentElement;
+    }
+    chartRoot.before(switchPanel);
     styleSwitchButtons();
   }
 
