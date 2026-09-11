@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         牛熊风向标 - 成交额图叠加全A分时
-// @namespace    https://emrnweb.eastmoney.com/
-// @version      3.1.4
-// @description  在东方财富“牛熊风向标”的成交额图中叠加东方财富全A（沪深京）或A股平均股价分时线。
+// @name         东方财富盘面增强
+// @namespace    https://github.com/zz-zigzag/eastmoney-market-enhancer/
+// @version      3.1.5
+// @description  在东方财富牛熊风向标中叠加全A和平均股价分时，辅助观察实时成交额变化。
 // @match        https://emrnweb.eastmoney.com/nxfxb/home*
 // @grant        GM_xmlhttpRequest
 // @connect      push2.eastmoney.com
@@ -14,18 +14,29 @@
 (function () {
   'use strict';
 
+  // 透明行情画布和指数切换栏的 DOM ID，用于查找实例并避免重复挂载。
   const OVERLAY_ID = 'ema-market-index-overlay';
   const SWITCH_ID = 'ema-market-index-switch';
+
+  // 首次无数据时的重试间隔：15 秒。
   const RETRY_REFRESH_MS = 15_000;
+  // 交易时段的数据刷新间隔：30 秒。
   const ACTIVE_REFRESH_MS = 30_000;
+  // 午休、收盘后和周末的数据刷新间隔：10 分钟。
   const IDLE_REFRESH_MS = 600_000;
+  // 页面尚未生成成交额图时，重新寻找并挂载的间隔：0.5 秒。
   const MOUNT_RETRY_MS = 500;
+  // 挂载成功后的健康检查间隔：5 秒，用于发现网站重新创建了图表。
   const MOUNT_HEALTH_MS = 5_000;
+
+  // 行情接口按顺序降级：当前域名失败或数据不完整时尝试下一个。
   const API_HOSTS = [
     'push2his.eastmoney.com',
     'push2.eastmoney.com',
     'push2delay.eastmoney.com',
   ];
+  // 指数配置：label 用于完整提示，shortLabel 用于按钮，secid 用于行情请求；
+  // color、lineAlpha 和 fillTop 分别控制折线、辅助线及面积填充颜色。
   const INDEXES = {
     allA: {
       label: '全A',
